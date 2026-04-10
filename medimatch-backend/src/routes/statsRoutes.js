@@ -97,77 +97,77 @@ router.get('/doctor', verifyToken, async (req, res) => {
   }
 });
 // Health Dashboard — full patient data
-// router.get('/health-dashboard', verifyToken, async (req, res) => {
-//   try {
-//     const id = req.user.id;
+router.get('/health-dashboard', verifyToken, async (req, res) => {
+  try {
+    const id = req.user.id;
 
-//     // Reports count + urgency breakdown
-//     const [[{ totalReports }]] = await db.query(
-//       'SELECT COUNT(*) as totalReports FROM reports WHERE patient_id = ?', [id]);
+    // Reports count + urgency breakdown
+    const [[{ totalReports }]] = await db.query(
+      'SELECT COUNT(*) as totalReports FROM reports WHERE patient_id = ?', [id]);
 
-//     const [urgencyCounts] = await db.query(
-//       `SELECT urgency, COUNT(*) as count FROM reports 
-//        WHERE patient_id = ? GROUP BY urgency`, [id]);
+    const [urgencyCounts] = await db.query(
+      `SELECT urgency, COUNT(*) as count FROM reports 
+       WHERE patient_id = ? GROUP BY urgency`, [id]);
 
-//     // Total visits (completed appointments)
-//     const [[{ totalVisits }]] = await db.query(
-//       `SELECT COUNT(*) as totalVisits FROM appointments 
-//        WHERE patient_id = ? AND status = 'completed'`, [id]);
+    // Total visits (completed appointments)
+    const [[{ totalVisits }]] = await db.query(
+      `SELECT COUNT(*) as totalVisits FROM appointments 
+       WHERE patient_id = ? AND status = 'completed'`, [id]);
 
-//     // Active prescriptions count
-//     const [[{ activeRx }]] = await db.query(
-//       `SELECT COUNT(*) as activeRx FROM prescriptions 
-//        WHERE patient_id = ? 
-//        AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)`, [id]);
+    // Active prescriptions count
+    const [[{ activeRx }]] = await db.query(
+      `SELECT COUNT(*) as activeRx FROM prescriptions 
+       WHERE patient_id = ? 
+       AND created_at >= DATE_SUB(NOW(), INTERVAL 6 MONTH)`, [id]);
 
-//     // All prescriptions with doctor info
-//     const [prescriptions] = await db.query(
-//       `SELECT p.*, d.full_name as doctor_name, d.specialization
-//        FROM prescriptions p
-//        JOIN doctors d ON p.doctor_id = d.id
-//        WHERE p.patient_id = ?
-//        ORDER BY p.created_at DESC`, [id]);
+    // All prescriptions with doctor info
+    const [prescriptions] = await db.query(
+      `SELECT p.*, d.full_name as doctor_name, d.specialization
+       FROM prescriptions p
+       JOIN doctors d ON p.doctor_id = d.id
+       WHERE p.patient_id = ?
+       ORDER BY p.created_at DESC`, [id]);
 
-//     // Medical history timeline
-//     const [appointments] = await db.query(
-//       `SELECT a.id, a.appointment_date, a.reason, a.status,
-//               d.full_name as doctor_name, d.specialization
-//        FROM appointments a
-//        JOIN doctors d ON a.doctor_id = d.id
-//        WHERE a.patient_id = ?
-//        ORDER BY a.appointment_date DESC LIMIT 10`, [id]);
+    // Medical history timeline
+    const [appointments] = await db.query(
+      `SELECT a.id, a.appointment_date, a.reason, a.status,
+              d.full_name as doctor_name, d.specialization
+       FROM appointments a
+       JOIN doctors d ON a.doctor_id = d.id
+       WHERE a.patient_id = ?
+       ORDER BY a.appointment_date DESC LIMIT 10`, [id]);
 
-//     const [reports] = await db.query(
-//       `SELECT id, report_type, urgency, uploaded_at, ai_summary
-//        FROM reports WHERE patient_id = ?
-//        ORDER BY uploaded_at DESC LIMIT 10`, [id]);
+    const [reports] = await db.query(
+      `SELECT id, report_type, urgency, uploaded_at, ai_summary
+       FROM reports WHERE patient_id = ?
+       ORDER BY uploaded_at DESC LIMIT 10`, [id]);
 
-//     // Health score calculation
-//     const critical = urgencyCounts.find(u => u.urgency === 'critical')?.count || 0;
-//     const moderate = urgencyCounts.find(u => u.urgency === 'moderate')?.count || 0;
-//     const normal   = urgencyCounts.find(u => u.urgency === 'normal')?.count || 0;
-//     let healthScore = 100;
-//     healthScore -= critical * 15;
-//     healthScore -= moderate * 5;
-//     healthScore = Math.max(0, Math.min(100, healthScore));
+    // Health score calculation
+    const critical = urgencyCounts.find(u => u.urgency === 'critical')?.count || 0;
+    const moderate = urgencyCounts.find(u => u.urgency === 'moderate')?.count || 0;
+    const normal   = urgencyCounts.find(u => u.urgency === 'normal')?.count || 0;
+    let healthScore = 100;
+    healthScore -= critical * 15;
+    healthScore -= moderate * 5;
+    healthScore = Math.max(0, Math.min(100, healthScore));
 
-//     res.json({
-//       healthScore,
-//       totalReports,
-//       totalVisits,
-//       activeRx,
-//       critical,
-//       moderate,
-//       normal,
-//       prescriptions,
-//       appointments,
-//       reports
-//     });
+    res.json({
+      healthScore,
+      totalReports,
+      totalVisits,
+      activeRx,
+      critical,
+      moderate,
+      normal,
+      prescriptions,
+      appointments,
+      reports
+    });
 
-//   } catch (err) {
-//     console.error('Health dashboard error:', err.message);
-//     res.status(500).json({ message: 'Server error', error: err.message });
-//   }
-// });
+  } catch (err) {
+    console.error('Health dashboard error:', err.message);
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+});
 
 module.exports = router;
