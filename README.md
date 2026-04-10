@@ -85,6 +85,8 @@ Backend → http://localhost:5000
 
 ---
 ## Screenshots
+### Login Page
+![Login](screenshots/login.png)
 
 ### Patient Dashboard
 ![Patient Dashboard](screenshots/PatientDashboard.png)
@@ -92,8 +94,7 @@ Backend → http://localhost:5000
 ### Doctor Dashboard
 ![Doctor Dashboard](screenshots/DoctorDashboard.png)
 
-### Login Page
-![Login](screenshots/login.png)
+
 
 ## Author
 
