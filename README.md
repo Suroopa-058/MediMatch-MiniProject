@@ -84,6 +84,16 @@ Frontend → http://localhost:3000
 Backend → http://localhost:5000
 
 ---
+## Screenshots
+
+### Patient Dashboard
+![Patient Dashboard](screenshots/PatientDashboard.png)
+
+### Doctor Dashboard
+![Doctor Dashboard](screenshots/DoctorDashboard.png)
+
+### Login Page
+![Login](screenshots/login.png)
 
 ## Author
 
