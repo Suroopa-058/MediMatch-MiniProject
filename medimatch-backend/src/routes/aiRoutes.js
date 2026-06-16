@@ -2,87 +2,142 @@ const express = require('express');
 const router = express.Router();
 const fs = require('fs');
 const path = require('path');
-const { GoogleGenAI } = require('@google/genai');
+const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-const analyzeWithGemini = async (base64Image, mediaType, reportType) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  try {
-    const prompt = `Analyze this ${reportType} medical report image and return ONLY a valid JSON object:
+// ─── Gemini Vision Analysis ───────────────────────────────────────────────────
+
+const analyzeWithGemini = async (absolutePath, mimeType) => {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not set in .env');
+
+  const fileBuffer = fs.readFileSync(absolutePath);
+  const base64Data = fileBuffer.toString('base64');
+
+  const prompt = `You are an expert medical report analysis AI. Read every value from this medical report.
+
+Return ONLY a valid JSON object. Keep descriptions short (under 20 words each) to fit in the response.
+
 {
-  "summary": "2-3 sentence plain English summary",
+  "summary": "<max 100 words, plain English>",
   "urgency": "normal",
-  "urgencyReason": "short reason",
+  "urgencyReason": "<one short sentence>",
   "findings": [
     {
-      "name": "Test name",
-      "value": "actual value with unit",
-      "normal": "normal range",
+      "name": "<test name>",
+      "value": "<value with unit>",
+      "normal": "<range>",
       "status": "normal",
       "severity": "normal",
-      "desc": "one line explanation"
+      "desc": "<under 15 words>"
     }
   ],
   "specialists": [
-    { "type": "specialist type", "reason": "why" }
+    { "type": "<specialist>", "reason": "<short reason>" }
   ],
-  "confidenceScore": 90
+  "confidenceScore": 85
 }
-Rules: urgency must be normal/mild/moderate/critical, status must be normal/high/low, severity must be normal/mild/moderate/critical. Extract ACTUAL values. Return ONLY JSON.`;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
-      contents: [
-        {
-          parts: [
-            {
-              inlineData: {
-                mimeType: mediaType,
-                data: base64Image
-              }
-            },
-            { text: prompt }
-          ]
-        }
+urgency must be one of: normal, mild, moderate, critical
+status must be one of: normal, high, low
+severity must be one of: normal, mild, moderate, critical
+
+Extract every test. Keep all text fields SHORT. Return ONLY the JSON, nothing else.`;
+
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+  const body = {
+    contents: [{
+      parts: [
+        { inline_data: { mime_type: mimeType, data: base64Data } },
+        { text: prompt }
       ]
-    });
+    }],
+    generationConfig: {
+      temperature: 0.1,
+      maxOutputTokens: 8192
+    }
+  };
 
-    const text = response.text();
-    const clean = text.replace(/```json|```/g, '').trim();
-    const result = JSON.parse(clean);
-    console.log('✅ Gemini analysis success');
-    return result;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
 
-  } catch (err) {
-    console.error('Gemini error:', err.message);
-    return null;
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Gemini API error (${response.status}): ${errText}`);
+  }
+
+  const data = await response.json();
+  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!rawText) throw new Error('Gemini returned empty response');
+
+  // Clean markdown fences
+  let clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+
+  // Extract just the JSON object if there's extra text
+  const jsonStart = clean.indexOf('{');
+  const jsonEnd = clean.lastIndexOf('}');
+  if (jsonStart !== -1 && jsonEnd !== -1) {
+    clean = clean.slice(jsonStart, jsonEnd + 1);
+  }
+
+  try {
+    return JSON.parse(clean);
+  } catch (e) {
+    console.error('Raw Gemini text:', rawText.slice(0, 500));
+    throw new Error('Failed to parse Gemini JSON response. Try uploading a clearer image.');
   }
 };
 
-// Chat route
-router.post('/chat', async (req, res) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  try {
-    const { messages } = req.body;
-    const userMessage = messages[messages.length - 1]?.content || '';
+// ─── Detect MIME type ─────────────────────────────────────────────────────────
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-lite',
-      contents: [{
-        parts: [{
-          text: `You are MediMatch AI Health Assistant. Help patients understand symptoms, medical reports, and recommend specialists. Be empathetic. Always remind users to consult real doctors.\n\nUser: ${userMessage}`
-        }]
-      }]
-    });
+const getMimeType = (filePath) => {
+  const ext = path.extname(filePath).toLowerCase();
+  const map = {
+    '.pdf':  'application/pdf',
+    '.jpg':  'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.png':  'image/png',
+  };
+  return map[ext] || 'image/jpeg';
+};
 
-    const reply = response.text() || 'Sorry, try again!';
-    res.json({ reply });
-  } catch (err) {
-    console.error('CHAT ERROR:', err.message);
-    res.status(500).json({ reply: 'Server error! Try again.' });
+// ─── Rule-based specialist mapping ───────────────────────────────────────────
+
+const applySpecialistRules = (findings) => {
+  const specialists = new Map();
+  for (const f of findings) {
+    if (f.status === 'normal') continue;
+    const name = f.name.toLowerCase();
+    if (name.includes('glucose') || name.includes('hba1c'))
+      specialists.set('Endocrinologist', `Elevated ${f.name} (${f.value}) suggests diabetes risk.`);
+    if (name.includes('cholesterol') || name.includes('ldl') || name.includes('triglyceride'))
+      specialists.set('Cardiologist', `High ${f.name} (${f.value}) increases cardiovascular risk.`);
+    if (name.includes('creatinine') || name.includes('bun') || name.includes('urea'))
+      specialists.set('Nephrologist', `Abnormal ${f.name} (${f.value}) may indicate kidney concerns.`);
+    if (name.includes('alt') || name.includes('ast') || name.includes('sgpt') || name.includes('sgot') || name.includes('bilirubin'))
+      specialists.set('Hepatologist', `Abnormal ${f.name} (${f.value}) indicates liver stress.`);
+    if (name.includes('tsh') || name.includes('thyroid') || name.includes(' t3') || name.includes(' t4'))
+      specialists.set('Endocrinologist', `Abnormal ${f.name} (${f.value}) suggests thyroid dysfunction.`);
+    if (name.includes('hemoglobin') || name.includes('hgb') || name.includes('rbc'))
+      specialists.set('Hematologist', `Abnormal ${f.name} (${f.value}) requires blood specialist review.`);
+    if (name.includes('uric acid'))
+      specialists.set('Rheumatologist', `Abnormal uric acid (${f.value}) may indicate gout risk.`);
+    if (name.includes('wbc') || name.includes('white blood'))
+      specialists.set('General Physician', `Abnormal ${f.name} (${f.value}) may indicate infection.`);
   }
-});
+  if (specialists.size === 0) {
+    const abnormal = findings.filter(f => f.status !== 'normal');
+    if (abnormal.length > 0)
+      specialists.set('General Physician', 'Some values outside normal range. General checkup recommended.');
+  }
+  return Array.from(specialists.entries()).map(([type, reason]) => ({ type, reason }));
+};
 
-// Report analysis route
+// ─── POST /api/ai/analyze-report ─────────────────────────────────────────────
+
 router.post('/analyze-report', async (req, res) => {
   try {
     const { reportId, filePath, reportType } = req.body;
@@ -90,34 +145,29 @@ router.post('/analyze-report', async (req, res) => {
 
     const absolutePath = path.join(__dirname, '../../', filePath);
     if (!fs.existsSync(absolutePath)) {
-      return res.status(404).json({ error: 'Report file not found' });
+      return res.status(404).json({ error: 'Report file not found on server.' });
     }
 
-    const imageBuffer = fs.readFileSync(absolutePath);
-    const base64Image = imageBuffer.toString('base64');
-    const ext = path.extname(filePath).toLowerCase().replace('.', '');
-    const mediaType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
+    const mimeType = getMimeType(absolutePath);
+    let result = await analyzeWithGemini(absolutePath, mimeType);
 
-    let result = await analyzeWithGemini(base64Image, mediaType, reportType || 'Medical');
+    // Apply rule-based specialists
+    const ruleSpecialists = applySpecialistRules(result.findings || []);
+    if (ruleSpecialists.length > 0) result.specialists = ruleSpecialists;
 
-    if (!result) {
-      result = {
-        summary: 'AI analysis temporarily unavailable. Please try again later.',
-        urgency: 'normal',
-        urgencyReason: 'Could not analyze automatically',
-        findings: [],
-        specialists: [{ type: 'General Physician', reason: 'Please consult a doctor for manual review' }],
-        confidenceScore: 0
-      };
-    }
+    // Clamp confidence
+    result.confidenceScore = Math.max(0, Math.min(100, Math.round(result.confidenceScore || 80)));
 
+    // Save to DB
     const db = require('../config/db');
     await db.query(
       'UPDATE reports SET ai_summary = ?, urgency = ? WHERE id = ?',
       [result.summary, result.urgency, reportId]
     );
 
+    console.log('Analysis complete. Urgency:', result.urgency, '| Findings:', result.findings?.length);
     res.json(result);
+
   } catch (err) {
     console.error('ANALYZE ERROR:', err.message);
     res.status(500).json({ message: 'Analysis failed', error: err.message });
