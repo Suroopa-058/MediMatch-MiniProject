@@ -10,17 +10,30 @@ exports.generateToken = (req, res) => {
     const userId = req.user.id;
     const channelName = `appointment_${appointmentId}`;
     const expireTime  = Math.floor(Date.now() / 1000) + 3600;
+
+    // ── FIX: Agora UID must be unique PER CHANNEL.
+    // Patients and doctors are in separate DB tables, both starting from id=1,
+    // so a patient and doctor can easily share the same numeric id.
+    // If both join with the same uid, Agora treats the second join as a
+    // duplicate connection and drops the first one — which is why both
+    // sides get stuck on "Connecting...".
+    // Namespacing the uid by role guarantees no collision.
+    const uid = role === 'doctor' ? 100000 + userId : 200000 + userId;
+
     const token = RtcTokenBuilder.buildTokenWithUid(
       APP_ID, APP_CERTIFICATE, channelName,
-      userId, RtcRole.PUBLISHER, expireTime
+      uid, RtcRole.PUBLISHER, expireTime
     );
+    console.log('Generated token:', token);
     db.query(
       `INSERT INTO video_sessions (appointment_id, started_by, started_at)
        VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE started_at = NOW()`,
       [appointmentId, userId]
     );
-    res.json({ token, channelName, appId: APP_ID, uid: userId });
+
+    res.json({ token, channelName, appId: APP_ID, uid });
   } catch (err) {
+    console.error('Token generation error:', err);
     res.status(500).json({ error: 'Failed to generate token' });
   }
 };

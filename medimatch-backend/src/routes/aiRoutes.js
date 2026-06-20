@@ -174,4 +174,78 @@ router.post('/analyze-report', async (req, res) => {
   }
 });
 
+// ─── POST /api/ai/chat — general health Q&A chatbot (text only, no file) ────
+
+const SYSTEM_PROMPT = `You are MediMatch AI Health Assistant. You help patients with:
+1. Understanding symptoms and possible conditions
+2. Explaining medical report values in simple language
+3. Recommending which type of specialist to consult
+4. General health tips and advice
+5. Explaining medical terms simply
+
+Always:
+- Be empathetic and caring
+- Give simple easy to understand answers
+- Recommend seeing a real doctor for serious issues
+- Keep responses concise and helpful (under 120 words)
+- Use emojis to make responses friendly
+- If symptoms sound critical, clearly say "Please see a doctor immediately!"
+
+You are NOT a replacement for real doctors. Always remind users to consult real doctors for diagnosis.`;
+
+router.post('/chat', async (req, res) => {
+  try {
+    const { messages } = req.body; // [{ role: 'user'|'assistant', text: '...' }, ...]
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: 'messages array is required' });
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) throw new Error('GEMINI_API_KEY not set in .env');
+
+    // Gemini expects roles "user" and "model" (not "assistant")
+    // and the system prompt is passed separately, not as a message.
+    const contents = messages
+      .filter((m) => m.text && m.text.trim())
+      .map((m) => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        parts: [{ text: m.text }],
+      }));
+
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
+    const body = {
+      contents,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      generationConfig: {
+        temperature: 0.4,
+        maxOutputTokens: 512,
+      },
+    };
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Gemini API error (${response.status}): ${errText}`);
+    }
+
+    const data = await response.json();
+    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+    if (!reply) throw new Error('Gemini returned an empty response');
+
+    res.json({ reply });
+
+  } catch (err) {
+    console.error('CHAT ERROR:', err.message);
+    res.status(500).json({ error: 'Failed to get AI response', details: err.message });
+  }
+});
+
 module.exports = router;
