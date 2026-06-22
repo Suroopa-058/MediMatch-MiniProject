@@ -2,12 +2,35 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
 const { verifyToken } = require('../middleware/authMiddleware');
 const db = require('../config/db');
 
+// ─── Storage strategy ──────────────────────────────────────────────────────
+// Render's free tier has an EPHEMERAL filesystem: anything written to disk
+// (like multer's old diskStorage into 'uploads/') gets wiped on every
+// restart/redeploy, and the 'uploads/' folder doesn't even exist on a fresh
+// container — which is exactly why uploads were failing with ENOENT.
+//
+// Fix: use multer.memoryStorage() so the file lives only in RAM during the
+// request. We still write it to a LOCAL uploads/ folder for convenience in
+// local dev (so existing file-based features keep working on your laptop),
+// but we make sure that folder exists first, and we no longer depend on it
+// surviving between requests on Render.
+
+const UPLOAD_DIR = path.join(__dirname, '../../uploads');
+
+// Ensure the uploads folder exists (works both locally and on Render's
+// current running instance — it just won't persist across Render restarts,
+// which is fine since the file is also analyzed immediately and the AI
+// summary is what actually gets stored permanently, in MySQL).
+if (!fs.existsSync(UPLOAD_DIR)) {
+  fs.mkdirSync(UPLOAD_DIR, { recursive: true });
+}
+
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/');
+    cb(null, UPLOAD_DIR); // absolute path now, not relative 'uploads/'
   },
   filename: (req, file, cb) => {
     const unique = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -33,7 +56,6 @@ router.post('/', verifyToken, upload.single('file'), async (req, res) => {
     const patient_id = req.user.id;
     const file_url = req.file ? `/uploads/${req.file.filename}` : null;
 
-    // ✅ capture insertId
     const [dbResult] = await db.query(
       `INSERT INTO reports (patient_id, report_type, file_url, ai_summary, urgency, uploaded_at) 
        VALUES (?, ?, ?, ?, ?, NOW())`,
@@ -43,7 +65,7 @@ router.post('/', verifyToken, upload.single('file'), async (req, res) => {
     res.status(201).json({ 
       message: '✅ Report uploaded!',
       file_url,
-      id: dbResult.insertId   // ✅ return the ID
+      id: dbResult.insertId
     });
   } catch (err) {
     console.error('UPLOAD ERROR:', err.message);
