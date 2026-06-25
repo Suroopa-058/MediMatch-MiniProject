@@ -4,14 +4,19 @@ const fs = require('fs');
 const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
-// ─── Gemini Vision Analysis ───────────────────────────────────────────────────
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // handles image + JSON mode
+const CHAT_MODEL = 'openai/gpt-oss-120b'; // text-only chatbot
 
-const analyzeWithGemini = async (absolutePath, mimeType) => {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) throw new Error('GEMINI_API_KEY not set in .env');
+// ─── Groq Vision Analysis ─────────────────────────────────────────────────────
+
+const analyzeWithGroq = async (absolutePath, mimeType) => {
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) throw new Error('GROQ_API_KEY not set in .env');
 
   const fileBuffer = fs.readFileSync(absolutePath);
   const base64Data = fileBuffer.toString('base64');
+  const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
   const prompt = `You are an expert medical report analysis AI. Read every value from this medical report.
 
@@ -43,37 +48,41 @@ severity must be one of: normal, mild, moderate, critical
 
 Extract every test. Keep all text fields SHORT. Return ONLY the JSON, nothing else.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
-
   const body = {
-    contents: [{
-      parts: [
-        { inline_data: { mime_type: mimeType, data: base64Data } },
-        { text: prompt }
-      ]
-    }],
-    generationConfig: {
-      temperature: 0.1,
-      maxOutputTokens: 8192
-    }
+    model: VISION_MODEL,
+    messages: [
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: prompt },
+          { type: 'image_url', image_url: { url: dataUrl } },
+        ],
+      },
+    ],
+    temperature: 0.1,
+    max_completion_tokens: 4096,
+    response_format: { type: 'json_object' },
   };
 
-  const response = await fetch(url, {
+  const response = await fetch(GROQ_URL, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
     const errText = await response.text();
-    throw new Error(`Gemini API error (${response.status}): ${errText}`);
+    throw new Error(`Groq API error (${response.status}): ${errText}`);
   }
 
   const data = await response.json();
-  const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!rawText) throw new Error('Gemini returned empty response');
+  const rawText = data.choices?.[0]?.message?.content;
+  if (!rawText) throw new Error('Groq returned empty response');
 
-  // Clean markdown fences
+  // Clean markdown fences (in case the model adds them despite json_object mode)
   let clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
 
   // Extract just the JSON object if there's extra text
@@ -86,8 +95,8 @@ Extract every test. Keep all text fields SHORT. Return ONLY the JSON, nothing el
   try {
     return JSON.parse(clean);
   } catch (e) {
-    console.error('Raw Gemini text:', rawText.slice(0, 500));
-    throw new Error('Failed to parse Gemini JSON response. Try uploading a clearer image.');
+    console.error('Raw Groq text:', rawText.slice(0, 500));
+    throw new Error('Failed to parse Groq JSON response. Try uploading a clearer image.');
   }
 };
 
@@ -96,10 +105,10 @@ Extract every test. Keep all text fields SHORT. Return ONLY the JSON, nothing el
 const getMimeType = (filePath) => {
   const ext = path.extname(filePath).toLowerCase();
   const map = {
-    '.pdf':  'application/pdf',
-    '.jpg':  'image/jpeg',
+    '.pdf': 'application/pdf',
+    '.jpg': 'image/jpeg',
     '.jpeg': 'image/jpeg',
-    '.png':  'image/png',
+    '.png': 'image/png',
   };
   return map[ext] || 'image/jpeg';
 };
@@ -129,7 +138,7 @@ const applySpecialistRules = (findings) => {
       specialists.set('General Physician', `Abnormal ${f.name} (${f.value}) may indicate infection.`);
   }
   if (specialists.size === 0) {
-    const abnormal = findings.filter(f => f.status !== 'normal');
+    const abnormal = findings.filter((f) => f.status !== 'normal');
     if (abnormal.length > 0)
       specialists.set('General Physician', 'Some values outside normal range. General checkup recommended.');
   }
@@ -149,7 +158,7 @@ router.post('/analyze-report', async (req, res) => {
     }
 
     const mimeType = getMimeType(absolutePath);
-    let result = await analyzeWithGemini(absolutePath, mimeType);
+    let result = await analyzeWithGroq(absolutePath, mimeType);
 
     // Apply rule-based specialists
     const ruleSpecialists = applySpecialistRules(result.findings || []);
@@ -167,7 +176,6 @@ router.post('/analyze-report', async (req, res) => {
 
     console.log('Analysis complete. Urgency:', result.urgency, '| Findings:', result.findings?.length);
     res.json(result);
-
   } catch (err) {
     console.error('ANALYZE ERROR:', err.message);
     res.status(500).json({ message: 'Analysis failed', error: err.message });
@@ -201,47 +209,47 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'messages array is required' });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) throw new Error('GEMINI_API_KEY not set in .env');
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) throw new Error('GROQ_API_KEY not set in .env');
 
-    // Gemini expects roles "user" and "model" (not "assistant")
-    // and the system prompt is passed separately, not as a message.
-    const contents = messages
-      .filter((m) => m.text && m.text.trim())
-      .map((m) => ({
-        role: m.role === 'user' ? 'user' : 'model',
-        parts: [{ text: m.text }],
-      }));
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+    // Groq/OpenAI format expects roles "system", "user", "assistant"
+    const chatMessages = [
+      { role: 'system', content: SYSTEM_PROMPT },
+      ...messages
+        .filter((m) => m.text && m.text.trim())
+        .map((m) => ({
+          role: m.role === 'user' ? 'user' : 'assistant',
+          content: m.text,
+        })),
+    ];
 
     const body = {
-      contents,
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 512,
-      },
+      model: CHAT_MODEL,
+      messages: chatMessages,
+      temperature: 0.4,
+      max_completion_tokens: 512,
     };
 
-    const response = await fetch(url, {
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify(body),
     });
 
     if (!response.ok) {
       const errText = await response.text();
-      throw new Error(`Gemini API error (${response.status}): ${errText}`);
+      throw new Error(`Groq API error (${response.status}): ${errText}`);
     }
 
     const data = await response.json();
-    const reply = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const reply = data.choices?.[0]?.message?.content;
 
-    if (!reply) throw new Error('Gemini returned an empty response');
+    if (!reply) throw new Error('Groq returned an empty response');
 
     res.json({ reply });
-
   } catch (err) {
     console.error('CHAT ERROR:', err.message);
     res.status(500).json({ error: 'Failed to get AI response', details: err.message });

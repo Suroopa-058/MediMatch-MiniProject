@@ -81,7 +81,7 @@ npm start
 The application will run on:
 
 Frontend → http://localhost:3000
-Backend → http://localhost:5000
+Backend → https://medimatch-backend-4t7f.onrender.com
 
 ---
 ## Screenshots
