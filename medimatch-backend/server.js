@@ -14,8 +14,19 @@ const adminRoutes = require('./src/routes/adminRoutes');
 
 const app = express();
 
+// ─── CORS ──────────────────────────────────────────────────────────────────
+// Added the deployed Vercel frontend URL alongside the existing localhost
+// origins (kept those too, so local development still works normally).
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000',
+  'http://localhost:3001',
+  'http://127.0.0.1:3001',
+  'https://medi-match-mini-project.vercel.app',
+];
+
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'],
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -32,22 +43,14 @@ app.get('/', (req, res) => {
   res.json({ message: '✅ MediMatch Backend Running!' });
 });
 
-// ─── Create HTTP server explicitly so Socket.io can attach to it ─────────────
-
 const httpServer = http.createServer(app);
 
 const io = new Server(httpServer, {
   cors: {
-    origin: ['http://localhost:3000', 'http://127.0.0.1:3000', 'http://localhost:3001', 'http://127.0.0.1:3001'],
+    origin: allowedOrigins,
     credentials: true
   }
 });
-
-// ─── Socket.io: real-time call-end signaling ──────────────────────────────────
-// Each patient/doctor joins a "room" named after their appointmentId when they
-// open the video call page. When either side ends the call, we broadcast a
-// "call-ended" event to that room — the other browser receives it instantly
-// and can clean up / navigate away, regardless of what Agora's own events do.
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
@@ -61,7 +64,6 @@ io.on('connection', (socket) => {
   socket.on('end-call', ({ appointmentId, endedBy }) => {
     const room = `appointment_${appointmentId}`;
     console.log(`Call ended in room ${room} by ${endedBy}`);
-    // Notify everyone else in the room (the other participant)
     socket.to(room).emit('call-ended', { endedBy });
   });
 
@@ -70,7 +72,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// Make io accessible to routes/controllers if needed later (e.g. chat via sockets)
 app.set('io', io);
 
 httpServer.listen(5000, '0.0.0.0', () => {
