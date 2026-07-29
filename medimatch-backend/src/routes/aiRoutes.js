@@ -5,7 +5,7 @@ const path = require('path');
 const fetch = (...args) => import('node-fetch').then(({ default: f }) => f(...args));
 
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const VISION_MODEL = 'meta-llama/llama-4-scout-17b-16e-instruct'; // handles image + JSON mode
+const VISION_MODEL = 'qwen/qwen3.6-27b'; // handles image + JSON mode — replaces deprecated llama-4-scout// handles image + JSON mode
 const CHAT_MODEL = 'openai/gpt-oss-120b'; // text-only chatbot
 
 // ─── Groq Vision Analysis ─────────────────────────────────────────────────────
