@@ -11,6 +11,7 @@ const reportRoutes = require('./src/routes/reportRoutes');
 const statsRoutes = require('./src/routes/statsRoutes');
 const videoRoutes = require('./src/routes/videoRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const scanRoutes = require('./src/routes/scanRoutes');
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/scan', scanRoutes);
+
 app.get('/', (req, res) => {
   res.json({ message: '✅ MediMatch Backend Running!' });
 });
