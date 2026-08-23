@@ -1,25 +1,14 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Using explicit SMTP settings instead of the `service: 'gmail'` shorthand,
-// plus longer timeouts — Render's outbound network path to Gmail can be
-// slower than nodemailer's default timeouts allow for, which was causing
-// "Connection timeout" errors on the very first send attempt.
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // true for port 465 (SSL), false for 587 (STARTTLS)
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Gmail App Password, NOT your normal password
-  },
-  connectionTimeout: 20000, // 20s instead of nodemailer's short default
-  greetingTimeout: 20000,
-  socketTimeout: 20000,
-});
+// Sends over HTTPS via Resend's API instead of a raw SMTP connection.
+// Render's free tier blocks outbound SMTP ports (25/465/587) entirely,
+// so nodemailer + Gmail can never work here — HTTPS-based sending sidesteps
+// that restriction completely since it's just a normal API call.
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendOTPEmail = async (toEmail, name, otp) => {
-  const mailOptions = {
-    from: `"MediMatch" <${process.env.EMAIL_USER}>`,
+  const { data, error } = await resend.emails.send({
+    from: 'MediMatch <onboarding@resend.dev>', // Resend's default test sender — no domain setup needed
     to: toEmail,
     subject: 'Verify your MediMatch account',
     html: `
@@ -45,9 +34,13 @@ const sendOTPEmail = async (toEmail, name, otp) => {
       </p>
     </div>
     `,
-  };
+  });
 
-  await transporter.sendMail(mailOptions);
+  if (error) {
+    throw new Error(`Resend API error: ${JSON.stringify(error)}`);
+  }
+
+  return data;
 };
 
 module.exports = { sendOTPEmail };
