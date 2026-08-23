@@ -26,7 +26,10 @@ export default function DoctorLogin() {
         localStorage.setItem('doctor', JSON.stringify(result.doctor));
         localStorage.setItem('role', 'doctor');
         navigate('/doctor/dashboard');
-      } else {
+      }
+      else if (result.needsVerification) {
+        navigate('/verify-otp', { state: { email: result.email, role: 'doctor' } });
+       }  else {
         setError(result.message || 'Login failed!');
       }
     } catch (err) {

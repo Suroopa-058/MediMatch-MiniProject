@@ -51,7 +51,8 @@ export default function DoctorRegister() {
         languages: form.languages,
         password: form.password,
       });
-     if (result.message && (result.message.includes('successfully') || result.message.includes('verification'))) {
+                if (result.message && (result.message.includes('successfully') || result.message.includes('verification'))) {
+        navigate('/verify-otp', { state: { email: form.email, role: 'doctor' } });
       } else {
         setError(result.message || 'Registration failed!');
       }

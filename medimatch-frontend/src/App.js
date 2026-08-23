@@ -12,6 +12,8 @@ import PatientDashboard from './pages/patient/PatientDashboard';
 import LabFinder from './pages/patient/LabFinder';
 import ReportUpload from './pages/patient/ReportUpload';
 import AIAnalysis from './pages/patient/AIAnalysis';
+import MedicineScan from './pages/patient/MedicineScan';
+import ScanResult from './pages/patient/ScanResult';
 import DoctorSwipe from './pages/patient/DoctorSwipe';
 import OTPConfirm from './pages/patient/OTPConfirm';
 import VideoConsult from './pages/patient/VideoConsult';
@@ -28,6 +30,7 @@ import Prescription from './pages/doctor/Prescription';
 import DoctorSettings from './pages/doctor/DoctorSettings';
 import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
+import OTPVerify from './pages/OTPVerify';
 
 function App() {
   return (
@@ -42,7 +45,7 @@ function App() {
         <Route path="/patient/register" element={<PatientRegister />} />
         <Route path="/doctor/login" element={<DoctorLogin />} />
         <Route path="/doctor/register" element={<DoctorRegister />} />
-
+      <Route path="/verify-otp" element={<OTPVerify />} />
         {/* Protected Patient Routes */}
         <Route path="/patient/dashboard" element={
           <PrivateRoute role="patient"><PatientDashboard /></PrivateRoute>} />
@@ -52,6 +55,10 @@ function App() {
           <PrivateRoute role="patient"><ReportUpload /></PrivateRoute>} />
         <Route path="/patient/ai-analysis" element={
           <PrivateRoute role="patient"><AIAnalysis /></PrivateRoute>} />
+        <Route path="/patient/medicine-scan" element={
+          <PrivateRoute role="patient"><MedicineScan /></PrivateRoute>} />
+        <Route path="/patient/scan-result" element={
+          <PrivateRoute role="patient"><ScanResult /></PrivateRoute>} />
         <Route path="/patient/doctor-swipe" element={
           <PrivateRoute role="patient"><DoctorSwipe /></PrivateRoute>} />
         <Route path="/patient/otp-confirm" element={

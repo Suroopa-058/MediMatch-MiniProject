@@ -28,7 +28,10 @@ export default function PatientLogin() {
         localStorage.setItem('patient', JSON.stringify(result.patient));
         localStorage.setItem('role', 'patient');
         navigate('/patient/dashboard');
-      } else {
+      }
+      else if (result.needsVerification) {
+        navigate('/verify-otp', { state: { email: result.email, role: 'patient' } });
+       } else {
         setError(result.message || 'Login failed!');
       }
     } catch (err) {

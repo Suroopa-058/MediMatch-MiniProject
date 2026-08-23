@@ -48,7 +48,7 @@ export default function PatientRegister() {
       });
 
       if (result.message && result.message.includes('successfully')) {
-        navigate('/patient/login');
+        navigate('/verify-otp', { state: { email: form.email, role: 'patient' } });
       } else {
         setError(result.message || 'Registration failed!');
       }

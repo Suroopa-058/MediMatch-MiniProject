@@ -11,10 +11,12 @@ export default function PatientSidebar() {
     { icon: '🧪', label: 'Find Lab',         path: '/patient/lab-finder' },
     { icon: '📄', label: 'Upload Report',    path: '/patient/report-upload' },
     { icon: '🧬', label: 'AI Analysis',      path: '/patient/ai-analysis' },
+    { icon: '💊', label: 'Medicine Scanner', path: '/patient/medicine-scan' },
     { icon: '👨‍⚕️', label: 'Find Doctor',    path: '/patient/doctor-swipe' },
     { icon: '✅', label: 'Confirm Booking',  path: '/patient/otp-confirm' },
     { icon: '🎥', label: 'Video Consult',    path: '/patient/video-consult' },
     { icon: '📊', label: 'Health Dashboard', path: '/patient/health-dashboard' },
+    
   ];
 
   const bottomItems = [

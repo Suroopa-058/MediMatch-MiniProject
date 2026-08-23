@@ -39,3 +39,22 @@ export const doctorLogin = async (data) => {
   });
   return res.json();
 };
+// Send / Resend OTP
+export const sendOtp = async (data) => {
+  const res = await fetch(`${API}/auth/send-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
+
+// Verify OTP
+export const verifyOtp = async (data) => {
+  const res = await fetch(`${API}/auth/verify-otp`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  return res.json();
+};
