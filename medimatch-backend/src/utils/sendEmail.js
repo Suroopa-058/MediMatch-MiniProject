@@ -1,11 +1,20 @@
 const nodemailer = require('nodemailer');
 
+// Using explicit SMTP settings instead of the `service: 'gmail'` shorthand,
+// plus longer timeouts — Render's outbound network path to Gmail can be
+// slower than nodemailer's default timeouts allow for, which was causing
+// "Connection timeout" errors on the very first send attempt.
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // true for port 465 (SSL), false for 587 (STARTTLS)
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS, // Gmail App Password, NOT your normal password
   },
+  connectionTimeout: 20000, // 20s instead of nodemailer's short default
+  greetingTimeout: 20000,
+  socketTimeout: 20000,
 });
 
 const sendOTPEmail = async (toEmail, name, otp) => {
