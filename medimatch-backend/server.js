@@ -16,7 +16,7 @@ const adminRoutes = require('./src/routes/adminRoutes');
 const scanRoutes = require('./src/routes/scanRoutes');
 const labAuthRoutes = require('./src/routes/labAuthRoutes');
 const labRoutes = require('./src/routes/labRoutes');
-
+const patientLabReportRoutes = require('./src/routes/patientLabReportRoutes');
 const app = express();
 
 // ─── CORS ──────────────────────────────────────────────────────────────────
@@ -46,7 +46,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/scan', scanRoutes);
 
 app.use('/api/lab', labRoutes);
-
+app.use('/api/patient-lab-reports', patientLabReportRoutes);
 app.get('/', (req, res) => {
   res.json({ message: '✅ MediMatch Backend Running!' });
 });
