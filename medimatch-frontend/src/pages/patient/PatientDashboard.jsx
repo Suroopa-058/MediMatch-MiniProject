@@ -2,11 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PatientSidebar from '../../components/patient/PatientSidebar';
 import AIChat from '../../components/patient/AIChat';
+import { getMyLabReports } from '../../services/labReportService';
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
   const [patient, setPatient] = useState(null);
   const [dashStats, setDashStats] = useState(null);
+  const [labReports, setLabReports] = useState([]);
 
   useEffect(() => {
     const stored = localStorage.getItem('patient');
@@ -19,6 +21,10 @@ export default function PatientDashboard() {
       .then(r => r.json())
       .then(data => setDashStats(data))
       .catch(err => console.error('Stats error:', err));
+
+    getMyLabReports()
+      .then(data => setLabReports(Array.isArray(data) ? data : []))
+      .catch(err => console.error('Lab reports error:', err));
   }, []);
 
   const firstName = patient?.full_name?.split(' ')[0] || 'Patient';
@@ -203,7 +209,7 @@ export default function PatientDashboard() {
       alert('No upcoming appointments. Please book first.');
     }
   } else {
-    navigate(a.path);   // ← this is line 207
+    navigate(a.path);
   }
 }}
               className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm cursor-pointer hover:border-teal-300 hover:shadow-md transition-all group"
@@ -219,8 +225,8 @@ export default function PatientDashboard() {
           ))}
         </div>
 
-        {/* Bottom Two Columns */}
-        <div className="grid grid-cols-2 gap-6">
+        {/* Bottom Three Columns */}
+        <div className="grid grid-cols-3 gap-6">
 
           {/* Upcoming Appointments — REAL DATA */}
           <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
@@ -248,7 +254,6 @@ export default function PatientDashboard() {
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getStatusColor(a.status)}`}>
                       {a.status.charAt(0).toUpperCase() + a.status.slice(1)}
                     </span>
-                    {/* ✅ FIX: Show Join button directly for confirmed appointments */}
                     {a.status === 'confirmed' && (
                       <button
                         onClick={() => navigate(`/patient/video-consult/${a.id}`)}
@@ -319,6 +324,40 @@ export default function PatientDashboard() {
             >
               + Upload New Report
             </button>
+          </div>
+
+          {/* Reports from Lab — REAL DATA */}
+          <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-gray-800">Reports from Lab</h3>
+            </div>
+
+            {labReports.length > 0 ? (
+              labReports.map((r) => (
+                <div key={r.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
+                  <div className="w-9 h-9 bg-indigo-50 rounded-full flex items-center justify-center text-lg">🧪</div>
+                  <div className="flex-1">
+                    <div className="text-sm font-semibold text-gray-800">{r.report_type}</div>
+                    <div className="text-xs text-gray-400">
+                      {r.lab_name} · {new Date(r.uploaded_at).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}
+                    </div>
+                  </div>
+                  <a
+                    href={`https://medimatch-backend-4t7f.onrender.com${r.file_url}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-2 py-0.5 rounded-full font-semibold"
+                  >
+                    ⬇ Download
+                  </a>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-gray-400">
+                <div className="text-3xl mb-2">🧪</div>
+                <p className="text-sm">No lab reports yet</p>
+              </div>
+            )}
           </div>
 
         </div>
