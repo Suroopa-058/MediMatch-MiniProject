@@ -4,6 +4,8 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 
+
+
 const authRoutes = require('./src/routes/authRoutes');
 const appointmentRoutes = require('./src/routes/appointmentRoutes');
 const aiRoutes = require('./src/routes/aiRoutes');
@@ -12,6 +14,8 @@ const statsRoutes = require('./src/routes/statsRoutes');
 const videoRoutes = require('./src/routes/videoRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 const scanRoutes = require('./src/routes/scanRoutes');
+const labAuthRoutes = require('./src/routes/labAuthRoutes');
+const labRoutes = require('./src/routes/labRoutes');
 
 const app = express();
 
@@ -25,14 +29,13 @@ const allowedOrigins = [
   'http://127.0.0.1:3001',
   'https://medi-match-mini-project.vercel.app',
 ];
-
 app.use(cors({
   origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
 app.use('/uploads', express.static('uploads'));
-
+app.use('/api/lab/auth', labAuthRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/appointments', appointmentRoutes);
 app.use('/api/ai', aiRoutes);
@@ -41,6 +44,8 @@ app.use('/api/stats', statsRoutes);
 app.use('/api/video', videoRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/scan', scanRoutes);
+
+app.use('/api/lab', labRoutes);
 
 app.get('/', (req, res) => {
   res.json({ message: '✅ MediMatch Backend Running!' });
