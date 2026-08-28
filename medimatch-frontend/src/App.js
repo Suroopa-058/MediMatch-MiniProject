@@ -32,6 +32,7 @@ import AdminLogin from './pages/admin/AdminLogin';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import LabLogin from './pages/lab/LabLogin';
 import LabRegister from './pages/lab/LabRegister';
+import LabDashboard from './pages/lab/LabDashboard';
 import OTPVerify from './pages/OTPVerify';
 
 function App() {
@@ -49,6 +50,7 @@ function App() {
         <Route path="/doctor/register" element={<DoctorRegister />} />
         <Route path="/lab/login" element={<LabLogin />} />
 <Route path="/lab/register" element={<LabRegister />} />
+<Route path="/lab/dashboard" element={<LabDashboard />} />
       <Route path="/verify-otp" element={<OTPVerify />} />
         {/* Protected Patient Routes */}
         <Route path="/patient/dashboard" element={
