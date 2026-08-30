@@ -24,6 +24,15 @@ export default function RoleSelect() {
       hoverBg: 'hover:bg-blue-50',
     },
     {
+      icon: '🧪',
+      title: 'Lab',
+      desc: 'Search patients and upload their lab reports securely',
+      borderColor: 'border-indigo-200 hover:border-indigo-500',
+      badgeBg: 'bg-indigo-100 text-indigo-700',
+      btnPrimary: 'bg-indigo-600 hover:bg-indigo-700',
+      hoverBg: 'hover:bg-indigo-50',
+    },
+    {
       icon: '🔧',
       title: 'Admin',
       desc: 'Manage platform, approve doctors & monitor system activity',
@@ -50,7 +59,7 @@ export default function RoleSelect() {
         <p className="text-gray-400 mt-2 text-sm">Select your role to continue to MediMatch</p>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex gap-6 flex-wrap justify-center">
         {roles.map((role) => (
           <div
             key={role.title}
@@ -66,6 +75,7 @@ export default function RoleSelect() {
              onClick={() => {
   if (role.title === 'Patient') navigate('/patient/login');
   else if (role.title === 'Doctor') navigate('/doctor/login');
+  else if (role.title === 'Lab') navigate('/lab/login');
   else navigate('/admin/login');
 }}
               className={`w-full ${role.btnPrimary} text-white py-2 rounded-lg text-sm font-bold mb-2 transition-all`}
@@ -77,6 +87,7 @@ export default function RoleSelect() {
               <button
                 onClick={() => {
   if (role.title === 'Patient') navigate('/patient/register');
+  else if (role.title === 'Lab') navigate('/lab/register');
   else navigate('/doctor/register');
 }}
                 className="w-full border border-gray-200 text-gray-500 hover:bg-gray-50 py-2 rounded-lg text-sm font-semibold transition-all"
