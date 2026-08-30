@@ -12,6 +12,7 @@ export default function PatientSidebar() {
     { icon: '📄', label: 'Upload Report',    path: '/patient/report-upload' },
     { icon: '🧬', label: 'AI Analysis',      path: '/patient/ai-analysis' },
     { icon: '💊', label: 'Medicine Scanner', path: '/patient/medicine-scan' },
+    { icon: '🧪', label: 'Reports from Lab', path: '/patient/lab-reports' },
     { icon: '👨‍⚕️', label: 'Find Doctor',    path: '/patient/doctor-swipe' },
     { icon: '✅', label: 'Confirm Booking',  path: '/patient/otp-confirm' },
     { icon: '🎥', label: 'Video Consult',    path: '/patient/video-consult' },
