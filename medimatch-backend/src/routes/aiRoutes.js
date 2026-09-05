@@ -60,7 +60,7 @@ Extract every test. Keep all text fields SHORT. Return ONLY the JSON, nothing el
       },
     ],
     temperature: 0.1,
-    max_completion_tokens: 4096,
+    max_completion_tokens:800,
     response_format: { type: 'json_object' },
   };
 
