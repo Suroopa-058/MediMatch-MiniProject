@@ -69,7 +69,7 @@ export default function Prescription() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h2 className="text-2xl font-bold text-gray-800">💊 Write Prescription</h2>
-            <p className="text-gray-400 text-sm mt-1">Patient: {patientName || 'Sneka Varsheni'}</p>
+            <p className="text-gray-400 text-sm mt-1">Patient: {patientName || 'Suroopa'}</p>
           </div>
           <button onClick={handleSend} disabled={sent || loading}
             className="bg-blue-600 hover:bg-blue-700 disabled:bg-green-500 text-white text-sm font-bold px-6 py-2.5 rounded-xl transition-all shadow-md">
@@ -85,7 +85,7 @@ export default function Prescription() {
               <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-3 mb-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-xl">👩</div>
                 <div>
-                  <div className="text-sm font-bold text-gray-800">{patientName || 'Sneka Varsheni'}</div>
+                  <div className="text-sm font-bold text-gray-800">{patientName || 'Suroopa'}</div>
                   <div className="text-xs text-gray-500">Appointment #{appointmentId}</div>
                 </div>
               </div>
@@ -146,7 +146,7 @@ export default function Prescription() {
               <div className="space-y-2 text-xs mb-4">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Patient</span>
-                  <span className="font-bold text-gray-800">{patientName || 'Sneka Varsheni'}</span>
+                  <span className="font-bold text-gray-800">{patientName || 'Suroopa'}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Diagnosis</span>

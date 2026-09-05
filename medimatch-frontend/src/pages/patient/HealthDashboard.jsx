@@ -13,7 +13,7 @@ const VITALS = [
 ];
 
 const FAMILY = [
-  { name: 'Sneka Varsheni', relation: 'You',    age: 24, blood: 'B+', status: 'Moderate', icon: '👩', statusColor: 'text-orange-500' },
+  { name: 'Suroopa', relation: 'You',    age: 24, blood: 'B+', status: 'Moderate', icon: '👩', statusColor: 'text-orange-500' },
   { name: 'Rathi',          relation: 'Mother', age: 50, blood: 'O+', status: 'Good',     icon: '👩', statusColor: 'text-green-500' },
   { name: 'Ravi',           relation: 'Father', age: 54, blood: 'B+', status: 'Good',     icon: '👨', statusColor: 'text-green-500' },
 ];

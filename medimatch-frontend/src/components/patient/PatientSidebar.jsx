@@ -40,7 +40,7 @@ export default function PatientSidebar() {
           A
         </div>
         <div>
-          <div className="text-xs font-bold text-gray-800">Sneka</div>
+          <div className="text-xs font-bold text-gray-800">Suroopa</div>
           <div className="text-xs text-teal-600 font-medium">Patient</div>
         </div>
       </div>

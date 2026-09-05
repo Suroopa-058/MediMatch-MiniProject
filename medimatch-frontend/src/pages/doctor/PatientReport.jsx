@@ -28,7 +28,7 @@ export default function PatientReport() {
 
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">📄 Patient Report — Sneka Varsheni</h2>
+            <h2 className="text-2xl font-bold text-gray-800">📄 Patient Report — Suroopa</h2>
             <p className="text-gray-400 text-sm mt-1">Blood Panel · Uploaded Mar 8, 2026 · AI Analyzed</p>
           </div>
           <button
@@ -113,7 +113,7 @@ export default function PatientReport() {
               <div className="flex items-center gap-3 bg-blue-50 rounded-xl p-3 mb-4">
                 <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-xl">👩</div>
                 <div>
-                  <div className="text-sm font-bold text-gray-800">Sneka Varsheni</div>
+                  <div className="text-sm font-bold text-gray-800">Suroopa</div>
                   <div className="text-xs text-gray-500">Age 24 · Female · B+</div>
                 </div>
               </div>

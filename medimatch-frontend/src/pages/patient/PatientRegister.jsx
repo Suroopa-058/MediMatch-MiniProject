@@ -115,7 +115,7 @@ export default function PatientRegister() {
             <>
               <label className="block text-xs font-bold text-gray-500 mb-1">Full Name</label>
               <input name="full_name" value={form.full_name} onChange={handleChange}
-                placeholder="Sneka Varsheni"
+                placeholder="Suroopa"
                 className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm outline-none focus:border-teal-400 mb-4" />
 
               <label className="block text-xs font-bold text-gray-500 mb-1">Email</label>
