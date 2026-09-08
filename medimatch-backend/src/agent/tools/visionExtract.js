@@ -91,7 +91,7 @@ const visionExtract = async (absolutePath) => {
     },
   ],
   temperature: 0.1,
-max_completion_tokens: 300,
+max_completion_tokens: 2048,
 response_format: {
   type: 'json_object',
 },
