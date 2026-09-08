@@ -95,6 +95,7 @@ max_completion_tokens: 300,
 response_format: {
   type: 'json_object',
 },
+reasoning_effort: 'none',
 };
 
   const response = await fetch(GROQ_URL, {
