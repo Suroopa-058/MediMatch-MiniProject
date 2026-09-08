@@ -28,6 +28,9 @@ const runMedicineAgent = async ({ imagePath, imageUrl, userId, language = 'en' }
   // ── Step 1: EXTRACT ──────────────────────────────────────────────────
   agentTrace.push({ step: 'extract', status: 'started' });
   const extraction = await visionExtract(imagePath);
+  if (typeof extraction.confidence === 'number' && extraction.confidence <= 1) {
+  extraction.confidence = Math.round(extraction.confidence * 100);
+}
   agentTrace.push({
     step: 'extract',
     status: 'completed',
