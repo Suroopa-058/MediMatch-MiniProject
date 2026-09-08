@@ -83,6 +83,7 @@ const visionExtract = async (absolutePath) => {
 
   const data = await response.json();
   const rawText = data.choices?.[0]?.message?.content;
+  console.log('RAW VISION RESPONSE:', rawText);
   if (!rawText) throw new Error('Groq returned empty response for vision extraction');
 
   let clean = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
