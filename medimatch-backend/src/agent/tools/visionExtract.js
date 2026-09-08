@@ -53,20 +53,19 @@ const visionExtract = async (absolutePath) => {
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
   const body = {
-    model: VISION_MODEL,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: EXTRACTION_PROMPT },
-          { type: 'image_url', image_url: { url: dataUrl } },
-        ],
-      },
-    ],
-    temperature: 0.1,
-    max_completion_tokens:500,
-    response_format: { type: 'json_object' },
-  };
+  model: VISION_MODEL,
+  messages: [
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: EXTRACTION_PROMPT },
+        { type: 'image_url', image_url: { url: dataUrl } },
+      ],
+    },
+  ],
+  temperature: 0.1,
+  max_completion_tokens: 500,
+};
 
   const response = await fetch(GROQ_URL, {
     method: 'POST',
