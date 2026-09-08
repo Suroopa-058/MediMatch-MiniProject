@@ -11,31 +11,52 @@ const VISION_MODEL = 'qwen/qwen3.6-27b'; // same model you're already using in M
 // make a decision afterward (proceed vs. ask for a clearer image) instead
 // of the vision call doing everything blindly in one shot.
 
-const EXTRACTION_PROMPT = `You are a medicine identification assistant analyzing an image that is either:
-(a) a medicine tablet/strip package, or
-(b) a doctor's handwritten or printed prescription.
+const EXTRACTION_PROMPT = `
+Analyze this image. It may contain a medicine tablet strip/package or a prescription.
 
-Extract what you can see. Return ONLY valid JSON, nothing else:
+You MUST return a valid JSON object.
+
+IMPORTANT:
+- Do not include <think> tags.
+- Do not explain your reasoning.
+- Do not include markdown.
+- Do not write any text before or after the JSON.
+- Return exactly one JSON object.
+- Use double quotes for all JSON keys and string values.
+- If the medicine cannot be identified, use "unclear".
+- If text cannot be read, use an empty string "".
+- Do not invent a medicine name.
+
+Return JSON in exactly this format:
 
 {
-  "image_type": "tablet_strip" | "prescription" | "unclear",
+  "image_type": "tablet_strip",
   "medicines_detected": [
     {
-      "raw_text": "<exact text as it appears on packaging/prescription>",
-      "likely_name": "<your best guess at the actual medicine name, cleaned up>",
-      "strength": "<e.g. 500mg, if visible>",
-      "frequency_instructions": "<any dosage/frequency text visible, e.g. '1-0-1 after food', or null if none visible>"
+      "raw_text": "",
+      "likely_name": "",
+      "strength": "",
+      "frequency_instructions": null
     }
   ],
-  "confidence": <integer 0-100, your confidence in the extraction accuracy>,
-  "image_quality_issue": "<describe if blurry/dark/cut-off/handwriting illegible, or null if image is clear>"
+  "confidence": 0,
+  "image_quality_issue": null
 }
 
-Rules:
-- If handwriting is illegible, still return your best guess but set confidence low and describe the issue.
-- If multiple medicines appear (common in prescriptions), list all of them.
-- Do not invent a medicine name if nothing is legible — use "unclear" and confidence 0 instead.
-- Return ONLY the JSON object.`;
+Allowed image_type values:
+- "tablet_strip"
+- "prescription"
+- "unclear"
+
+If no medicine is detected, return:
+
+{
+  "image_type": "unclear",
+  "medicines_detected": [],
+  "confidence": 0,
+  "image_quality_issue": "Image is unclear or no medicine information is visible"
+}
+`;
 
 const getMimeType = (filePath) => {
   const ext = filePath.split('.').pop().toLowerCase();
@@ -52,19 +73,28 @@ const visionExtract = async (absolutePath) => {
   const base64Data = fileBuffer.toString('base64');
   const dataUrl = `data:${mimeType};base64,${base64Data}`;
 
-  const body = {
+ const body = {
   model: VISION_MODEL,
   messages: [
     {
       role: 'user',
       content: [
-        { type: 'text', text: EXTRACTION_PROMPT },
-        { type: 'image_url', image_url: { url: dataUrl } },
+        {
+          type: 'text',
+          text: EXTRACTION_PROMPT,
+        },
+        {
+          type: 'image_url',
+          image_url: { url: dataUrl },
+        },
       ],
     },
   ],
   temperature: 0.1,
-  max_completion_tokens: 500,
+max_completion_tokens: 300,
+response_format: {
+  type: 'json_object',
+},
 };
 
   const response = await fetch(GROQ_URL, {
@@ -94,11 +124,15 @@ const visionExtract = async (absolutePath) => {
   }
 
   try {
-    return JSON.parse(clean);
-  } catch (e) {
-    console.error('Raw vision extraction text:', rawText.slice(0, 500));
-    throw new Error('Failed to parse vision extraction JSON. Image may be too unclear.');
-  }
+  return JSON.parse(clean);
+} catch (e) {
+  console.error('Raw vision extraction text:', rawText.slice(0, 1000));
+  console.error('JSON parsing error:', e.message);
+
+  throw new Error(
+    'Vision AI did not return the expected JSON format. Please try again.'
+  );
+}
 };
 
 module.exports = { visionExtract };
