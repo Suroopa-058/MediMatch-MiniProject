@@ -50,7 +50,7 @@ export default function MedicineScan() {
       } else if (data.needsBetterImage) {
         alert(data.message || 'Please try a clearer photo.');
       } else {
-        alert('Analysis failed: ' + (data.message || data.error || 'Unknown error'));
+        alert('Analysis failed: ' + (data.error || data.message || 'Unknown error'));
       }
     } catch (err) {
       console.error(err);
